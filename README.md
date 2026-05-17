@@ -1,6 +1,6 @@
 # Home Lab on Mac Mini
 
-Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and common troubleshooting steps.
+Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and common how-tos for running a compact home lab.
 
 Badges: (add CI / last-updated / license badges here)
 
@@ -102,7 +102,7 @@ EOF
 # Update apt
 sudo apt update
 ```
-If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s).
+If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s.
 
 4. Update and upgrade
 ```bash
@@ -116,6 +116,17 @@ sudo pveam available
 sudo pveam download local debian-12-standard
 ```
 After download, `Create CT` wizard will show the template in the `local` storage.
+
+6. Connect the device to Cloudflare
+   - If you manage DNS with Cloudflare, add a DNS record for the host's public hostname (A or AAAA) pointing to your router/public IP or to the IP/hostname you use to reach the host.
+   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind Cloudflare without directly exposing your origin IP.
+   - Quick Cloudflare Tunnel steps (example on Debian/Proxmox):
+     1. Install cloudflared (see Cloudflare docs for latest repo/install instructions).
+     2. Authenticate: `cloudflared login` and follow the browser flow to associate the tunnel with your Cloudflare account.
+     3. Create a tunnel and route a hostname: `cloudflared tunnel create pve-tunnel` then `cloudflared tunnel route dns pve-tunnel pve.example.com`.
+     4. Run the tunnel as a service (Cloudflare docs provide a systemd service example).
+   - Alternatively, add an A/AAAA record in the Cloudflare dashboard and enable the proxy (orange cloud) to route traffic via Cloudflare. Be aware that some Proxmox features may require special handling when behind a proxy.
+   - Store any API tokens or keys securely if you automate DNS updates or tunnel creation.
 
 ## Common Troubleshooting
 
