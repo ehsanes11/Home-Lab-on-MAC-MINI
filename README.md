@@ -1,6 +1,6 @@
 # Home Lab on Mac Mini
 
-Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and configuration examples for a compact home lab.
+Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and confi[...]
 
 Badges: (add CI / last-updated / license badges here)
 
@@ -22,7 +22,7 @@ Last updated: 2026-05-18
 - [License](#license)
 
 ## Summary
-This repository documents a compact home lab setup for learning and running services on Proxmox VE/Ubuntu/Docker on a Mac Mini. Use it as a reference for installation, best practices, and troubleshooting for a single-node Proxmox host.
+This repository documents a compact home lab setup for learning and running services on Proxmox VE/Ubuntu/Docker on a Mac Mini. Use it as a reference for installation, best practices, and troubleshoot[...]
 
 ## Quickstart
 1. Boot the Mac Mini from Proxmox installer media and follow the installer prompts.
@@ -59,7 +59,7 @@ To verify the management IP after logging into the host console:
 ip a
 ```
 
-Notes on the browser: Proxmox ships with a self-signed cert; your browser will warn on first access. You can replace it with a proper cert later (Let’s Encrypt via a reverse proxy is a common approach).
+Notes on the browser: Proxmox ships with a self-signed cert; your browser will warn on first access. You can replace it with a proper cert later (Let’s Encrypt via a reverse proxy is a common approa[...]
 
 ## Storage Allocation Recommendations
 For the 2 TB SSD, consider:
@@ -116,7 +116,7 @@ If the Create CT wizard shows an empty Template field and returns a validation e
 
     Input error. This field is required.
 
-it usually means there are no rootfs templates present in a directory-based storage (commonly the `local` storage). Proxmox lists templates that live in a directory-type storage (typically `/var/lib/vz/template/cache`).
+it usually means there are no rootfs templates present in a directory-based storage (commonly the `local`). Proxmox lists templates that live in a directory-type storage (typically `/var/[...]
 
 Web UI (recommended for GUI users):
 - Main Menu -> select your node (e.g., `pve`) -> `local` storage (or the storage name that is directory-type) -> `CT Templates` -> click the `Templates` button.
@@ -138,7 +138,7 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 6. Connect the device to Cloudflare
    - If you manage DNS with Cloudflare, add a DNS record for the host's public hostname (A or AAAA) pointing to your router/public IP or to the IP/hostname you use to reach the host.
-   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your network without opening inbound ports.
+   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your[...]
    - Quick Cloudflare Tunnel steps (example on Debian/Proxmox):
      1. Install cloudflared (see Cloudflare docs for latest repo/install instructions).
      2. Authenticate: `cloudflared login` and follow the browser flow to associate the tunnel with your Cloudflare account.
@@ -151,11 +151,11 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 Why Cloudflare Tunnel?
 
-- No Public Static IP Needed: Since my ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from my local environment to the Cloudflare edge network.
+- No Public Static IP Needed: Since my ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from my local environment to the Cloudflare edge networ[...]
 
-- Zero Inbound Ports Open: I do not need to configure any port forwarding on my home router. This completely hides my local network's public IP address from the internet and protects the lab from direct attack.
+- Zero Inbound Ports Open: I do not need to configure any port forwarding on my home router. This completely hides my local network's public IP address from the internet and protects the lab from dire[...]
 
-- Automatic SSL/TLS Encryption: Cloudflare automatically manages and provisions SSL certificates. All external traffic heading to my local services is fully encrypted (HTTPS), rendering a secure environment.
+- Automatic SSL/TLS Encryption: Cloudflare automatically manages and provisions SSL certificates. All external traffic heading to my local services is fully encrypted (HTTPS), rendering a secure envir[...]
 
 Network Architecture & Deployment Strategy
 
@@ -174,7 +174,7 @@ Network Architecture & Deployment Strategy
 
 Dedicated Gateway: Deployed a lightweight Debian 12 LXC container (CT 100) on the Proxmox node (ahmagh) acting as a dedicated, isolated gateway handling all tunnel traffic.
 
-Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to seamlessly handle Proxmox's built-in self-signed cert.
+Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to seamlessly handle Proxmox's built-in[...]
 
 Step-by-Step Implementation
 
@@ -201,15 +201,19 @@ Authenticated the local environment with the Cloudflare Zero Trust dashboard via
 cloudflared tunnel login
 ```
 
-Tunnel Configuration:
-Created a persistent tunnel named homelab-tunnel and structured the main system configuration file (/etc/cloudflared/config.yml):
+Tunnel Configuration (redacted / example values)
+Created a persistent tunnel named homelab-tunnel and structured the main system configuration file (/etc/cloudflared/config.yml). The live tunnel UUID and credentials file path have been removed from this public README. Below is a safe, fake example you can copy and edit locally.
 
 ```yaml
-tunnel: bdcc3d71-96a1-451e-bc37-9b1c18bcf646
-credentials-file: /root/.cloudflared/bdcc3d71-96a1-451e-bc37-9b1c18bcf646.json
+# Example (FAKE values) — do NOT commit real credentials to this repo
+
+# Fake tunnel ID shown for demonstration only
+tunnel: 00000000-0000-0000-0000-000000000000
+# Fake credentials file path
+credentials-file: /root/.cloudflared/00000000-0000-0000-0000-000000000000.json
 
 ingress:
-  - hostname: proxmox.ahmagh.shop
+  - hostname: proxmox.example.com
     service: https://10.0.0.50:8006
     originRequest:
       noTLSVerify: true
@@ -220,7 +224,11 @@ DNS Routing & Persistence:
 Mapped the custom subdomain to the established tunnel on Cloudflare's DNS, and registered cloudflared as a persistent system service:
 
 ```bash
-cloudflared tunnel route dns homelab-tunnel proxmox.ahmagh.shop
+# Create a tunnel (local name)
+cloudflared tunnel create homelab-tunnel
+# Route a DNS name to the tunnel (replace with your hostname)
+cloudflared tunnel route dns homelab-tunnel proxmox.example.com
+# Install the service with your config
 cloudflared --config /etc/cloudflared/config.yml service install
 systemctl start cloudflared
 systemctl enable cloudflared
@@ -228,7 +236,7 @@ systemctl enable cloudflared
 
 Notes and Best Practices
 - Keep the cloudflared credentials file secure and do not check it into version control.
-- If you use `noTLSVerify: true`, ensure the origin (Proxmox) is on a trusted local network and you understand the implications — it only disables verification of the origin certificate, not encryption.
+- If you use `noTLSVerify: true`, ensure the origin (Proxmox) is on a trusted local network and you understand the implications — it only disables verification of the origin certificate, not encrypt[...]
 - Prefer binding the cloudflared service to an unprivileged user inside the LXC and limit the container's network capabilities if possible.
 - Test access from an external network (cellular hotspot) to confirm the tunnel is reachable and the hostname resolves to Cloudflare's edge.
 
@@ -240,7 +248,7 @@ During the LXC container creation wizard, the Template field can be empty and th
     Input error. This field is required.
 
 Cause:
-No rootfs templates are present in the hypervisor's directory-based storage (commonly `local`). Proxmox's CT wizard lists templates that exist in directory storage (typically `/var/lib/vz/template/cache`).
+No rootfs templates are present in the hypervisor's directory-based storage (commonly `local`). Proxmox's CT wizard lists templates that exist in directory storage (typically `/var/lib/vz/templat[...]
 
 Resolution:
 1. Download the template (Web UI) — see step 5 above.
