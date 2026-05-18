@@ -1,6 +1,6 @@
 # Home Lab on Mac Mini
 
-Documentation and configuration for a Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and configuration examples for a compact home lab.
+Documentation and configuration for a Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and con[...]
 
 Badges: (add CI / last-updated / license badges here)
 
@@ -22,7 +22,7 @@ Last updated: 2026-05-18
 - [License](#license)
 
 ## Summary
-This repository documents a compact home lab setup for learning and running services on Proxmox VE/Ubuntu/Docker on a Mac Mini. Use it as a reference for installation, best practices, and troubleshooting.
+This repository documents a compact home lab setup for learning and running services on Proxmox VE/Ubuntu/Docker on a Mac Mini. Use it as a reference for installation, best practices, and troubles[...]
 
 ## Quickstart
 1. Boot the Mac Mini from Proxmox installer media and follow the installer prompts.
@@ -59,7 +59,7 @@ To verify the management IP after logging into the host console:
 ip a
 ```
 
-Notes on the browser: Proxmox ships with a self-signed cert; your browser will warn on first access. You can replace it with a proper cert later (Let’s Encrypt via a reverse proxy is a common approach).
+Notes on the browser: Proxmox ships with a self-signed cert; your browser will warn on first access. You can replace it with a proper cert later (Let’s Encrypt via a reverse proxy is a common ap[...]
 
 ## Storage Allocation Recommendations
 For the 2 TB SSD, consider:
@@ -103,7 +103,7 @@ EOF
 # Update apt
 sudo apt update
 ```
-If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s).
+If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s.
 
 4. Update and upgrade
 ```bash
@@ -116,7 +116,7 @@ If the Create CT wizard shows an empty Template field and returns a validation e
 
     Input error. This field is required.
 
-it usually means there are no rootfs templates present in a directory-based storage (commonly the `local`). Proxmox lists templates that live in a directory-type storage (typically `/var/lib/vz/template/cache`).
+it usually means there are no rootfs templates present in a directory-based storage (commonly the `local`). Proxmox lists templates that live in a directory-type storage (typically `/var/lib/vz/t[...]
 
 Web UI (recommended for GUI users):
 - Main Menu -> select your node (e.g., `pve`) -> `local` storage (or the storage name that is directory-type) -> `CT Templates` -> click the `Templates` button.
@@ -138,7 +138,7 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 6. Connect the device to Cloudflare (optional)
    - If you manage DNS with Cloudflare, add a DNS record for the host's public hostname (A or AAAA) pointing to your router/public IP or to the IP/hostname you use to reach the host.
-   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your network.
+   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your[...]
    - Quick Cloudflare Tunnel steps (example on Debian/Proxmox):
      1. Install cloudflared (see Cloudflare docs for latest repo/install instructions).
      2. Authenticate: `cloudflared login` and follow the browser flow to associate the tunnel with your Cloudflare account.
@@ -151,7 +151,7 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 Why Cloudflare Tunnel?
 
-- No Public Static IP Needed: If your ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from a local environment to the Cloudflare edge network.
+- No Public Static IP Needed: If your ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from a local environment to the Cloudflare edge net[...]
 - Zero Inbound Ports Open: You do not need to configure any port forwarding on your home router. This hides your local network's public IP address from the internet and reduces exposure.
 - Automatic SSL/TLS Encryption: Cloudflare automatically manages and provisions SSL certificates. All external traffic heading to local services is encrypted (HTTPS).
 
@@ -172,7 +172,7 @@ Network Architecture & Deployment Strategy
 
 Dedicated Gateway: Deployed a lightweight Debian 12 LXC container (CT 100) on the Proxmox node (lab-node) acting as a dedicated, isolated gateway handling all tunnel traffic.
 
-Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to handle Proxmox's built-in certificate (see notes on security below).
+Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to handle Proxmox's built-in certificat[...]
 
 Step-by-Step Implementation
 
@@ -200,7 +200,7 @@ cloudflared tunnel login
 ```
 
 Tunnel Configuration (redacted / example values)
-Created a persistent tunnel named homelab-tunnel and structured the main system configuration file (/etc/cloudflared/config.yml). The live tunnel UUID and credentials file path have been removed from this example.
+Created a persistent tunnel named homelab-tunnel and structured the main system configuration file (/etc/cloudflared/config.yml). The live tunnel UUID and credentials file path have been removed [...]
 
 ```yaml
 # Example (FAKE values) — do NOT commit real credentials to this repo
@@ -234,9 +234,16 @@ systemctl enable cloudflared
 
 Notes and Best Practices
 - Keep the cloudflared credentials file secure and do not check it into version control.
-- If you use `noTLSVerify: true`, ensure the origin (Proxmox) is on a trusted local network and you understand the implications — it only disables verification of the origin certificate, not encryption.
+- If you use `noTLSVerify: true`, ensure the origin (Proxmox) is on a trusted local network and you understand the implications — it only disables verification of the origin certificate, not en[...]
 - Prefer binding the cloudflared service to an unprivileged user inside the LXC and limit the container's network capabilities if possible.
 - Test access from an external network (cellular hotspot) to confirm the tunnel is reachable and the hostname resolves to Cloudflare's edge.
+
+### 🔐 Datacenter Two-Factor Authentication (2FA) Setup
+To protect the infrastructure from unauthorized access, a global Two-Factor Authentication rule has been configured at the Datacenter level:
+
+1. **Navigation:** Navigated to `Datacenter` -> `Two Factor` in the Proxmox VE web UI.
+2. **Configuration:** Clicked **Add**, selected **TOTP**, and scanned the generated QR code using a mobile authenticator app.
+3. **Verification:** Verified and linked the device (saved under description `for data center`) to enforce a 6-digit dynamic token upon every `root@pam` login.
 
 ## Missing LXC Template — Issue / Cause / Resolution
 
