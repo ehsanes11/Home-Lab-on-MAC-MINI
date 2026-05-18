@@ -1,6 +1,6 @@
 # Home Lab on Mac Mini
 
-Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and confi[...]
+Documentation and configuration for a Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and configuration examples for a compact home lab.
 
 Badges: (add CI / last-updated / license badges here)
 
@@ -22,18 +22,18 @@ Last updated: 2026-05-18
 - [License](#license)
 
 ## Summary
-This repository documents a compact home lab setup for learning and running services on Proxmox VE/Ubuntu/Docker on a Mac Mini. Use it as a reference for installation, best practices, and troubleshoot[...]
+This repository documents a compact home lab setup for learning and running services on Proxmox VE/Ubuntu/Docker on a Mac Mini. Use it as a reference for installation, best practices, and troubleshooting.
 
 ## Quickstart
 1. Boot the Mac Mini from Proxmox installer media and follow the installer prompts.
 2. Configure static management IP during installation.
-3. After first boot: open the Proxmox web UI at `https://<MAC_MINI_IP>:8006` (or the configured hostname `https://proxmox.ahmagh.shop:8006` if you've published it through DNS/Cloudflare).
+3. After first boot: open the Proxmox web UI at `https://<MAC_MINI_IP>:8006` (or the configured hostname `https://proxmox.example.com:8006` if you've published it through DNS/Cloudflare).
 4. Disable the enterprise repository (if you don't have a subscription) and add the no-subscription repository — see [Post-install Steps](#post-install-steps).
 5. Download an LXC template (`debian-12-standard`) before creating containers.
 
 ## Hardware Stack
 - Server: Apple Mac Mini (Late 2014)
-- Hostname: proxmox.ahmagh.shop
+- Hostname: proxmox.example.com
 - Storage: Local SSD + 2 TB SSD
 - RAM: (specify installed RAM here)
 - Network: Wired Ethernet (required for stable Proxmox bridge setup)
@@ -41,7 +41,7 @@ This repository documents a compact home lab setup for learning and running serv
 ## Software & Services
 - Hypervisor: Proxmox VE (bare-metal)
 - Guests / Containers: Ubuntu Server (VMs), LXC, Docker & Docker Compose
-- External: Cloudflare for DNS/domain management
+- External: Cloudflare for DNS/domain management (optional)
 - Goals: Study for A+, Network+, Security+, and Linux administration
 
 ## Prerequisites
@@ -51,7 +51,7 @@ This repository documents a compact home lab setup for learning and running serv
 
 ## Proxmox Installation Notes
 - Choose the wired NIC as the management interface.
-- Set a meaningful FQDN for the host, e.g. `proxmox.ahmagh.shop`.
+- Set a meaningful FQDN for the host, e.g. `proxmox.example.com`.
 - Use a static IP in your LAN subnet (e.g., `192.168.1.50/24`), gateway `192.168.1.1`, and DNS `1.1.1.1` or `8.8.8.8`.
 
 To verify the management IP after logging into the host console:
@@ -59,7 +59,7 @@ To verify the management IP after logging into the host console:
 ip a
 ```
 
-Notes on the browser: Proxmox ships with a self-signed cert; your browser will warn on first access. You can replace it with a proper cert later (Let’s Encrypt via a reverse proxy is a common approa[...]
+Notes on the browser: Proxmox ships with a self-signed cert; your browser will warn on first access. You can replace it with a proper cert later (Let’s Encrypt via a reverse proxy is a common approach).
 
 ## Storage Allocation Recommendations
 For the 2 TB SSD, consider:
@@ -103,7 +103,7 @@ EOF
 # Update apt
 sudo apt update
 ```
-If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s.
+If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s).
 
 4. Update and upgrade
 ```bash
@@ -116,7 +116,7 @@ If the Create CT wizard shows an empty Template field and returns a validation e
 
     Input error. This field is required.
 
-it usually means there are no rootfs templates present in a directory-based storage (commonly the `local`). Proxmox lists templates that live in a directory-type storage (typically `/var/[...]
+it usually means there are no rootfs templates present in a directory-based storage (commonly the `local`). Proxmox lists templates that live in a directory-type storage (typically `/var/lib/vz/template/cache`).
 
 Web UI (recommended for GUI users):
 - Main Menu -> select your node (e.g., `pve`) -> `local` storage (or the storage name that is directory-type) -> `CT Templates` -> click the `Templates` button.
@@ -136,13 +136,13 @@ sudo pveam download local debian-12-standard
 ```
 After the download completes you should see `TASK OK` in the Web UI task log and the template will appear in the Create CT wizard once the storage view updates.
 
-6. Connect the device to Cloudflare
+6. Connect the device to Cloudflare (optional)
    - If you manage DNS with Cloudflare, add a DNS record for the host's public hostname (A or AAAA) pointing to your router/public IP or to the IP/hostname you use to reach the host.
-   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your[...]
+   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your network.
    - Quick Cloudflare Tunnel steps (example on Debian/Proxmox):
      1. Install cloudflared (see Cloudflare docs for latest repo/install instructions).
      2. Authenticate: `cloudflared login` and follow the browser flow to associate the tunnel with your Cloudflare account.
-     3. Create a tunnel and route a hostname: `cloudflared tunnel create pve-tunnel` then `cloudflared tunnel route dns pve-tunnel pve.example.com` (replace with `proxmox.ahmagh.shop`).
+     3. Create a tunnel and route a hostname: `cloudflared tunnel create pve-tunnel` then `cloudflared tunnel route dns pve-tunnel proxmox.example.com`.
      4. Run the tunnel as a service (Cloudflare docs provide a systemd service example).
    - Alternatively, add an A/AAAA record in the Cloudflare dashboard and enable the proxy (orange cloud). Be aware that some Proxmox features may require special handling if traffic is proxied.
    - Store any API tokens or keys securely if you automate DNS updates or tunnel creation.
@@ -151,11 +151,9 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 Why Cloudflare Tunnel?
 
-- No Public Static IP Needed: Since my ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from my local environment to the Cloudflare edge networ[...]
-
-- Zero Inbound Ports Open: I do not need to configure any port forwarding on my home router. This completely hides my local network's public IP address from the internet and protects the lab from dire[...]
-
-- Automatic SSL/TLS Encryption: Cloudflare automatically manages and provisions SSL certificates. All external traffic heading to my local services is fully encrypted (HTTPS), rendering a secure envir[...]
+- No Public Static IP Needed: If your ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from a local environment to the Cloudflare edge network.
+- Zero Inbound Ports Open: You do not need to configure any port forwarding on your home router. This hides your local network's public IP address from the internet and reduces exposure.
+- Automatic SSL/TLS Encryption: Cloudflare automatically manages and provisions SSL certificates. All external traffic heading to local services is encrypted (HTTPS).
 
 Network Architecture & Deployment Strategy
 
@@ -172,9 +170,9 @@ Network Architecture & Deployment Strategy
                                           ▼
                            [ Proxmox VE Web UI: 10.0.0.50:8006 ]
 
-Dedicated Gateway: Deployed a lightweight Debian 12 LXC container (CT 100) on the Proxmox node (ahmagh) acting as a dedicated, isolated gateway handling all tunnel traffic.
+Dedicated Gateway: Deployed a lightweight Debian 12 LXC container (CT 100) on the Proxmox node (lab-node) acting as a dedicated, isolated gateway handling all tunnel traffic.
 
-Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to seamlessly handle Proxmox's built-in[...]
+Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to handle Proxmox's built-in certificate (see notes on security below).
 
 Step-by-Step Implementation
 
@@ -202,7 +200,7 @@ cloudflared tunnel login
 ```
 
 Tunnel Configuration (redacted / example values)
-Created a persistent tunnel named homelab-tunnel and structured the main system configuration file (/etc/cloudflared/config.yml). The live tunnel UUID and credentials file path have been removed from this public README. Below is a safe, fake example you can copy and edit locally.
+Created a persistent tunnel named homelab-tunnel and structured the main system configuration file (/etc/cloudflared/config.yml). The live tunnel UUID and credentials file path have been removed from this example.
 
 ```yaml
 # Example (FAKE values) — do NOT commit real credentials to this repo
@@ -236,7 +234,7 @@ systemctl enable cloudflared
 
 Notes and Best Practices
 - Keep the cloudflared credentials file secure and do not check it into version control.
-- If you use `noTLSVerify: true`, ensure the origin (Proxmox) is on a trusted local network and you understand the implications — it only disables verification of the origin certificate, not encrypt[...]
+- If you use `noTLSVerify: true`, ensure the origin (Proxmox) is on a trusted local network and you understand the implications — it only disables verification of the origin certificate, not encryption.
 - Prefer binding the cloudflared service to an unprivileged user inside the LXC and limit the container's network capabilities if possible.
 - Test access from an external network (cellular hotspot) to confirm the tunnel is reachable and the hostname resolves to Cloudflare's edge.
 
