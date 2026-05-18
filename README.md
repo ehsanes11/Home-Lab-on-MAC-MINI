@@ -1,10 +1,10 @@
 # Home Lab on Mac Mini
 
-Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and common how-tos.
+Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and configuration snippets for common services.
 
 Badges: (add CI / last-updated / license badges here)
 
-Last updated: May 2026
+Last updated: 2026-05-18
 
 ## Table of Contents
 - [Summary](#summary)
@@ -102,7 +102,7 @@ EOF
 # Update apt
 sudo apt update
 ```
-If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s.
+If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s).
 
 4. Update and upgrade
 ```bash
@@ -137,7 +137,7 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 6. Connect the device to Cloudflare
    - If you manage DNS with Cloudflare, add a DNS record for the host's public hostname (A or AAAA) pointing to your router/public IP or to the IP/hostname you use to reach the host.
-   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind Cloudflare without exposing your public IP or opening inbound ports.
+   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your network without exposing inbound ports.
    - Quick Cloudflare Tunnel steps (example on Debian/Proxmox):
      1. Install cloudflared (see Cloudflare docs for latest repo/install instructions).
      2. Authenticate: `cloudflared login` and follow the browser flow to associate the tunnel with your Cloudflare account.
@@ -150,26 +150,42 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 Why Cloudflare Tunnel?
 
-- No Static IP Required: My ISP does not provide a static public IP. Cloudflare Tunnel establishes a secure, outbound-only connection from my local environment to the Cloudflare network, making a public static IP unnecessary.
+- No Public Static IP Needed: Since my ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from my local environment to the Cloudflare edge network, bypassing the need for a static IP or Dynamic DNS (DDNS).
 
-- Enhanced Security: By using a tunnel, I don't need to open any inbound ports on my home router (no port forwarding). This completely hides my home network's public IP address from the internet and shields the lab from direct DDoS attacks.
+- Zero Inbound Ports Open: I do not need to configure any port forwarding on my home router. This completely hides my local network's public IP address from the internet and protects the lab from direct internet-facing attacks and DDoS threats.
 
-- SSL/TLS Encryption: It automatically handles SSL certificates, ensuring all external traffic to my local services is fully encrypted (HTTPS) and marked as Secure.
+- Automatic SSL/TLS Encryption: Cloudflare automatically manages and provisions SSL certificates. All external traffic heading to my local services is fully encrypted (HTTPS), rendering a secure environment without manual certificate management on every service.
 
-Deployment Steps (Proxmox LXC)
+Network Architecture & Deployment Strategy
 
-1. Create the Dedicated Container:
-   - Deployed a lightweight Debian 12 LXC container (CT 100) on the Proxmox node (ahmagh) dedicated solely to handling the Cloudflare traffic.
+[ Public Internet ] ──( HTTPS )──> [ Cloudflare Edge ]
+                                          │
+                                   ( Cloudflare Tunnel )
+                                          │
+                                          ▼
+                                   [ Proxmox Node ]
+                             LXC Container (CT 100 - Debian 12)
+                             Running cloudflared service
+                                          │
+                                   ( Local Network )
+                                          ▼
+                           [ Proxmox VE Web UI: 10.0.0.50:8006 ]
 
-2. Environment Preparation:
-   - Access the container console and update the package manager:
+Dedicated Gateway: Deployed a lightweight Debian 12 LXC container (CT 100) on the Proxmox node (ahmagh) acting as a dedicated, isolated gateway handling all tunnel traffic.
+
+Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to seamlessly handle Proxmox's built-in self-signed certificate.
+
+Step-by-Step Implementation
+
+Environment Preparation:
+Updated the LXC package manager and installed dependencies:
 
 ```bash
 apt update && apt install curl -y
 ```
 
-3. Install the Cloudflare Download Client (cloudflared):
-   - Add the official Cloudflare repository and install the کلاینت binary:
+Repository & Client Installation:
+Added the official Cloudflare package signing key and repository, then installed the cloudflared binary:
 
 ```bash
 curl -L https://pkg.cloudflare.com/cloudflare-main.gpg -o /usr/share/keyrings/cloudflare-main.gpg
@@ -177,13 +193,43 @@ echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudf
 apt update && apt install cloudflared -y
 ```
 
-4. Authenticate and Bind the Tunnel:
+Authentication:
+Authenticated the local environment with the Cloudflare Zero Trust dashboard via the generated link:
 
 ```bash
 cloudflared tunnel login
 ```
 
-Copy the generated URL into the browser, log in to the Cloudflare account, and authorize the zone.
+Tunnel Configuration:
+Created a persistent tunnel named homelab-tunnel and structured the main system configuration file (/etc/cloudflared/config.yml):
+
+```yaml
+tunnel: bdcc3d71-96a1-451e-bc37-9b1c18bcf646
+credentials-file: /root/.cloudflared/bdcc3d71-96a1-451e-bc37-9b1c18bcf646.json
+
+ingress:
+  - hostname: proxmox.ahmagh.shop
+    service: https://10.0.0.50:8006
+    originRequest:
+      noTLSVerify: true
+  - service: http_status:404
+```
+
+DNS Routing & Persistence:
+Mapped the custom subdomain to the established tunnel on Cloudflare's DNS, and registered cloudflared as a persistent system service:
+
+```bash
+cloudflared tunnel route dns homelab-tunnel proxmox.ahmagh.shop
+cloudflared --config /etc/cloudflared/config.yml service install
+systemctl start cloudflared
+systemctl enable cloudflared
+```
+
+Notes and Best Practices
+- Keep the cloudflared credentials file secure and do not check it into version control.
+- If you use `noTLSVerify: true`, ensure the origin (Proxmox) is on a trusted local network and you understand the implications — it only disables verification of the origin certificate, not encryption.
+- Prefer binding the cloudflared service to an unprivileged user inside the LXC and limit the container's network capabilities if possible.
+- Test access from an external network (cellular hotspot) to confirm the tunnel is reachable and the hostname resolves to Cloudflare's edge.
 
 ## Missing LXC Template — Issue / Cause / Resolution
 
