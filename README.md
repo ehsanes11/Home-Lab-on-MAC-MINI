@@ -1,6 +1,6 @@
 # Home Lab on Mac Mini
 
-Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and configuration snippets for common services.
+Documentation and configuration for my Home Lab running Proxmox VE on an Apple Mac Mini (Late 2014). This repo centralizes installation notes, storage recommendations, network configuration, and configuration examples for a compact home lab.
 
 Badges: (add CI / last-updated / license badges here)
 
@@ -22,17 +22,18 @@ Last updated: 2026-05-18
 - [License](#license)
 
 ## Summary
-This repository documents a compact home lab setup for learning and running services on Proxmox VE/Ubuntu/Docker on a Mac Mini. Use it as a reference for installation, best practices, and troubleshooting.
+This repository documents a compact home lab setup for learning and running services on Proxmox VE/Ubuntu/Docker on a Mac Mini. Use it as a reference for installation, best practices, and troubleshooting for a single-node Proxmox host.
 
 ## Quickstart
 1. Boot the Mac Mini from Proxmox installer media and follow the installer prompts.
 2. Configure static management IP during installation.
-3. After first boot: open the Proxmox web UI at `https://<MAC_MINI_IP>:8006`.
+3. After first boot: open the Proxmox web UI at `https://<MAC_MINI_IP>:8006` (or the configured hostname `https://proxmox.ahmagh.shop:8006` if you've published it through DNS/Cloudflare).
 4. Disable the enterprise repository (if you don't have a subscription) and add the no-subscription repository — see [Post-install Steps](#post-install-steps).
 5. Download an LXC template (`debian-12-standard`) before creating containers.
 
 ## Hardware Stack
 - Server: Apple Mac Mini (Late 2014)
+- Hostname: proxmox.ahmagh.shop
 - Storage: Local SSD + 2 TB SSD
 - RAM: (specify installed RAM here)
 - Network: Wired Ethernet (required for stable Proxmox bridge setup)
@@ -50,7 +51,7 @@ This repository documents a compact home lab setup for learning and running serv
 
 ## Proxmox Installation Notes
 - Choose the wired NIC as the management interface.
-- Set a meaningful FQDN for the host, e.g. `pve.homelab.local` or `node1.example.com`.
+- Set a meaningful FQDN for the host, e.g. `proxmox.ahmagh.shop`.
 - Use a static IP in your LAN subnet (e.g., `192.168.1.50/24`), gateway `192.168.1.1`, and DNS `1.1.1.1` or `8.8.8.8`.
 
 To verify the management IP after logging into the host console:
@@ -102,7 +103,7 @@ EOF
 # Update apt
 sudo apt update
 ```
-If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s).
+If you prefer to keep the enterprise file but disable it, open `/etc/apt/sources.list.d/pve-enterprise.list` and comment the `deb` line(s.
 
 4. Update and upgrade
 ```bash
@@ -115,7 +116,7 @@ If the Create CT wizard shows an empty Template field and returns a validation e
 
     Input error. This field is required.
 
-it usually means there are no rootfs templates present in a directory-based storage (commonly the `local` storage). Proxmox lists templates that live in a directory-type storage (by default `/var/lib/vz/template/cache`).
+it usually means there are no rootfs templates present in a directory-based storage (commonly the `local` storage). Proxmox lists templates that live in a directory-type storage (typically `/var/lib/vz/template/cache`).
 
 Web UI (recommended for GUI users):
 - Main Menu -> select your node (e.g., `pve`) -> `local` storage (or the storage name that is directory-type) -> `CT Templates` -> click the `Templates` button.
@@ -137,11 +138,11 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 6. Connect the device to Cloudflare
    - If you manage DNS with Cloudflare, add a DNS record for the host's public hostname (A or AAAA) pointing to your router/public IP or to the IP/hostname you use to reach the host.
-   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your network without exposing inbound ports.
+   - If exposing the Proxmox UI externally, prefer Cloudflare Tunnel (recommended) to avoid opening ports on your router. Cloudflare Tunnel (cloudflared) lets you securely publish services behind your network without opening inbound ports.
    - Quick Cloudflare Tunnel steps (example on Debian/Proxmox):
      1. Install cloudflared (see Cloudflare docs for latest repo/install instructions).
      2. Authenticate: `cloudflared login` and follow the browser flow to associate the tunnel with your Cloudflare account.
-     3. Create a tunnel and route a hostname: `cloudflared tunnel create pve-tunnel` then `cloudflared tunnel route dns pve-tunnel pve.example.com`.
+     3. Create a tunnel and route a hostname: `cloudflared tunnel create pve-tunnel` then `cloudflared tunnel route dns pve-tunnel pve.example.com` (replace with `proxmox.ahmagh.shop`).
      4. Run the tunnel as a service (Cloudflare docs provide a systemd service example).
    - Alternatively, add an A/AAAA record in the Cloudflare dashboard and enable the proxy (orange cloud). Be aware that some Proxmox features may require special handling if traffic is proxied.
    - Store any API tokens or keys securely if you automate DNS updates or tunnel creation.
@@ -150,11 +151,11 @@ After the download completes you should see `TASK OK` in the Web UI task log and
 
 Why Cloudflare Tunnel?
 
-- No Public Static IP Needed: Since my ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from my local environment to the Cloudflare edge network, bypassing the need for a static IP or Dynamic DNS (DDNS).
+- No Public Static IP Needed: Since my ISP does not provide a static public IP, Cloudflare Tunnel establishes a secure, outbound-only connection from my local environment to the Cloudflare edge network.
 
-- Zero Inbound Ports Open: I do not need to configure any port forwarding on my home router. This completely hides my local network's public IP address from the internet and protects the lab from direct internet-facing attacks and DDoS threats.
+- Zero Inbound Ports Open: I do not need to configure any port forwarding on my home router. This completely hides my local network's public IP address from the internet and protects the lab from direct attack.
 
-- Automatic SSL/TLS Encryption: Cloudflare automatically manages and provisions SSL certificates. All external traffic heading to my local services is fully encrypted (HTTPS), rendering a secure environment without manual certificate management on every service.
+- Automatic SSL/TLS Encryption: Cloudflare automatically manages and provisions SSL certificates. All external traffic heading to my local services is fully encrypted (HTTPS), rendering a secure environment.
 
 Network Architecture & Deployment Strategy
 
@@ -173,7 +174,7 @@ Network Architecture & Deployment Strategy
 
 Dedicated Gateway: Deployed a lightweight Debian 12 LXC container (CT 100) on the Proxmox node (ahmagh) acting as a dedicated, isolated gateway handling all tunnel traffic.
 
-Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to seamlessly handle Proxmox's built-in self-signed certificate.
+Local Ingress Proxy: The cloudflared daemon proxies incoming traffic locally over HTTPS to the Proxmox internal IP (10.0.0.50:8006), utilizing noTLSVerify: true to seamlessly handle Proxmox's built-in self-signed cert.
 
 Step-by-Step Implementation
 
@@ -239,7 +240,7 @@ During the LXC container creation wizard, the Template field can be empty and th
     Input error. This field is required.
 
 Cause:
-No rootfs templates are present in the hypervisor's directory-based storage (e.g., `local`). Proxmox's CT wizard lists templates that exist in directory storage (typically `/var/lib/vz/template/cache`).
+No rootfs templates are present in the hypervisor's directory-based storage (commonly `local`). Proxmox's CT wizard lists templates that exist in directory storage (typically `/var/lib/vz/template/cache`).
 
 Resolution:
 1. Download the template (Web UI) — see step 5 above.
