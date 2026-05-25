@@ -6,6 +6,7 @@
 - RAM: 16GB
 - Internal Storage: 256GB SSD
 - External Storage: 2TB SSD (planned for backups and storage)
+<img width="1680" height="1050" alt="Screenshot 2026-05-24 at 11 01 20 PM" src="https://github.com/user-attachments/assets/12962e4a-f839-43fc-b8e8-89df1afdb45c" />
 
 ---
 
@@ -95,6 +96,7 @@ Datacenter → Firewall → Enable
 ```
 
 ---
+<img width="1680" height="1050" alt="Screenshot 2026-05-24 at 11 29 12 PM" src="https://github.com/user-attachments/assets/34a67503-e50d-40f6-8195-3bfc0f68009b" />
 
 # Storage Layout
 
