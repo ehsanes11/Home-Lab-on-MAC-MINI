@@ -20,29 +20,51 @@ reboot
 
 ---
 
-## Disable Enterprise Repository
+# Repository Configuration
 
-Edited:
+## Why Enterprise Repositories Were Disabled
+
+Proxmox enables enterprise repositories by default.
+Since this homelab does not use a paid Proxmox subscription, the enterprise repositories generated authentication errors during updates.
+
+Example error:
 
 ```text
-/etc/apt/sources.list.d/pve-enterprise.list
-```
-
-Disabled:
-
-```text
-# deb https://enterprise.proxmox.com/debian/pve bookworm pve-enterprise
+401 Unauthorized
+The repository is not signed.
 ```
 
 ---
 
-## Enable No-Subscription Repository
+## Enterprise Repository
 
-Added to:
+Disabled:
 
 ```text
-/etc/apt/sources.list
+/etc/apt/sources.list.d/pve-enterprise.sources
 ```
+
+---
+
+## Ceph Repository
+
+Disabled because:
+
+- This is a single-node homelab
+- Distributed storage is not required
+- Ceph is unnecessary for this environment
+
+Disabled file:
+
+```text
+/etc/apt/sources.list.d/ceph.sources
+```
+
+---
+
+## No-Subscription Repository
+
+Configured repository:
 
 ```text
 deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
@@ -50,7 +72,13 @@ deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
 
 ---
 
-## Timezone Configuration
+## Result
+
+System updates now work normally without authentication errors.
+
+---
+
+# Timezone Configuration
 
 ```bash
 timedatectl set-timezone America/New_York
@@ -58,25 +86,32 @@ timedatectl set-timezone America/New_York
 
 ---
 
-## Firewall
+# Firewall
 
 Enabled Proxmox Firewall from:
 
+```text
 Datacenter → Firewall → Enable
-
+```
 
 ---
 
 # Storage Layout
 
 ## Internal SSD
+
 Used for:
+
 - Proxmox OS
 - VM disks
 - Containers
 
+---
+
 ## External 2TB SSD
+
 Planned for:
+
 - Backups
 - Docker data
 - Media storage
