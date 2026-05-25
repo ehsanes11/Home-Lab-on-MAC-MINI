@@ -64,27 +64,6 @@ Enabled Proxmox Firewall from:
 
 Datacenter → Firewall → Enable
 
----
-
-## SSH Hardening
-
-Modified:
-
-```text
-/etc/ssh/sshd_config
-```
-
-Configured:
-
-```text
-PermitRootLogin prohibit-password
-```
-
-Restarted SSH:
-
-```bash
-systemctl restart ssh
-```
 
 ---
 
