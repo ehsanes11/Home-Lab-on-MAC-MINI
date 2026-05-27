@@ -1,5 +1,3 @@
-
-
 # Setup Process
 
 ## Create Tunnel
@@ -26,35 +24,78 @@ homelab-tunnel
 
 ## Tunnel Token
 
-Cloudflare generated a secure tunnel token used by the cloudflared container.
+Cloudflare generated a secure tunnel token used by the cloudflared service.
 
 The token is treated as a secret and is never stored in GitHub.
 
 ---
 
-## Planned Deployment Method
+## Deployment Method
 
-The tunnel will run inside Docker using:
+The tunnel runs inside a dedicated Debian LXC container in Proxmox.
+
+Container purpose:
 
 ```text
-cloudflare/cloudflared
+Dedicated Cloudflare Tunnel Service
 ```
 
-Container location:
+Benefits:
+
+- Lightweight
+- Isolated from Proxmox host
+- Minimal resource usage
+- Persistent tunnel connection
+
+---
+
+## Tunnel Architecture
 
 ```text
-/opt/containers/cloudflared
+Internet
+↓
+Cloudflare Access
+↓
+Cloudflare Tunnel
+↓
+Proxmox
 ```
 
 ---
 
-## Planned Routing
+## Security Features
 
-Traffic flow:
+- No port forwarding
+- HTTPS enabled through Cloudflare
+- Home public IP hidden
+- Email authentication enabled
+- Zero Trust access control
+- Self-signed Proxmox certificate handled through Cloudflare Tunnel
+
+---
+
+## Tunnel Configuration
+
+Public hostname:
 
 ```text
-Cloudflare
-→ Tunnel
-→ Reverse Proxy
-→ Internal Docker Services
+pve.ahmagh.shop
+```
+
+Tunnel service type:
+
+```text
+HTTPS
+```
+
+Origin service:
+
+```text
+10.0.0.60:8006
+```
+
+Additional TLS setting:
+
+```text
+No TLS Verify = Enabled
 ```
