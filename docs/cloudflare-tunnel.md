@@ -6,20 +6,18 @@ Securely expose self-hosted services to the internet without opening router port
 
 ---
 
-# Architecture
+# Current Architecture
 
 ```text
 Internet
-   ↓
-Cloudflare
-   ↓
-Encrypted Tunnel
-   ↓
-cloudflared container
-   ↓
-Reverse Proxy
-   ↓
-Docker Services
+↓
+Cloudflare Access
+↓
+Cloudflare Tunnel
+↓
+Dedicated cloudflared LXC Container
+↓
+Proxmox
 ```
 
 ---
@@ -33,61 +31,103 @@ Benefits:
 - Automatic HTTPS
 - Works behind dynamic IP
 - Reduced attack surface
-- Easy remote access
+- Secure remote access
+- Zero Trust authentication
 
 ---
 
-# Planned Services
+# Current Deployment
 
-The tunnel will later expose:
+The tunnel currently runs inside a dedicated Debian LXC container in Proxmox.
 
-- Portainer
-- Vaultwarden
-- Uptime Kuma
-- Future self-hosted services
+Container purpose:
+
+```text
+Dedicated Cloudflare Tunnel Service
+```
+
+Advantages:
+
+- Lightweight
+- Isolated from Proxmox host
+- Persistent connection
+- Minimal resource usage
 
 ---
 
-# Security Notes
+# Current Security Features
 
 - No direct public exposure of Proxmox
 - No public SSH access
-- Tunnel token must remain private
-- Reverse proxy will be used for routing
+- Cloudflare Access enabled
+- Email authentication enabled
+- HTTPS secured through Cloudflare
+- Home IP address hidden
+- Tunnel token remains private
 
 ---
 
-# Planned Stack
+# Current Public Hostname
 
 ```text
-Proxmox
-   ↓
-Docker VM
-   ↓
-Docker Containers
-   ├── cloudflared
-   ├── nginx proxy manager
-   ├── portainer
-   ├── vaultwarden
-   └── uptime kuma
+pve.ahmagh.shop
 ```
 
 ---
 
-# Tunnel Type
+# Tunnel Configuration
 
-Cloudflare Zero Trust Tunnel using:
+Tunnel type:
 
 ```text
-cloudflared
+Cloudflared
+```
+
+Origin service:
+
+```text
+https://10.0.0.60:8006
+```
+
+TLS setting:
+
+```text
+No TLS Verify = Enabled
+```
+
+---
+
+# Planned Future Services
+
+Future self-hosted services may include:
+
+- Portainer
+- Vaultwarden
+- Uptime Kuma
+- Nginx Proxy Manager
+- Additional Docker services
+
+---
+
+# Planned Future Architecture
+
+```text
+Proxmox
+├── cloudflared LXC
+└── Docker VM
+    ├── Portainer
+    ├── Vaultwarden
+    ├── Uptime Kuma
+    └── Reverse Proxy
 ```
 
 ---
 
 # Future Improvements
 
-- Access Policies
 - MFA Authentication
-- Geo Blocking
-- WAF Rules
 - GitOps Integration
+- Monitoring Stack
+- Automated Backups
+- Advanced Access Policies
+- Internal Reverse Proxy
