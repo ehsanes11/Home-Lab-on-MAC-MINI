@@ -26,13 +26,13 @@ Proxmox
 
 Benefits:
 
-- No port forwarding required
-- Real home IP remains hidden
-- Automatic HTTPS
-- Works behind dynamic IP
-- Reduced attack surface
-- Secure remote access
-- Zero Trust authentication
+* No port forwarding required
+* Home public IP remains hidden
+* Automatic HTTPS
+* Works behind dynamic IP
+* Reduced attack surface
+* Secure remote access
+* Zero Trust authentication
 
 ---
 
@@ -48,29 +48,29 @@ Dedicated Cloudflare Tunnel Service
 
 Advantages:
 
-- Lightweight
-- Isolated from Proxmox host
-- Persistent connection
-- Minimal resource usage
+* Lightweight
+* Isolated from Proxmox host
+* Persistent connection
+* Minimal resource usage
 
 ---
 
 # Current Security Features
 
-- No direct public exposure of Proxmox
-- No public SSH access
-- Cloudflare Access enabled
-- Email authentication enabled
-- HTTPS secured through Cloudflare
-- Home IP address hidden
-- Tunnel token remains private
+* No direct public exposure of Proxmox
+* No public SSH access
+* Cloudflare Access enabled
+* Email authentication enabled
+* HTTPS secured through Cloudflare
+* Home IP address remains hidden
+* Tunnel token remains private
 
 ---
 
-# Current Public Hostname
+# Public Access Endpoint
 
 ```text
-pve.ahmagh.shop
+https://pve.example.com
 ```
 
 ---
@@ -86,7 +86,7 @@ Cloudflared
 Origin service:
 
 ```text
-https://10.0.0.60:8006
+https://internal-ip-address:8006
 ```
 
 TLS setting:
@@ -101,11 +101,11 @@ No TLS Verify = Enabled
 
 Future self-hosted services may include:
 
-- Portainer
-- Vaultwarden
-- Uptime Kuma
-- Nginx Proxy Manager
-- Additional Docker services
+* Portainer
+* Vaultwarden
+* Uptime Kuma
+* Nginx Proxy Manager
+* Additional Docker services
 
 ---
 
@@ -114,7 +114,7 @@ Future self-hosted services may include:
 ```text
 Proxmox
 ├── cloudflared LXC
-└── Docker VM
+└── Debian Docker VM
     ├── Portainer
     ├── Vaultwarden
     ├── Uptime Kuma
@@ -125,9 +125,9 @@ Proxmox
 
 # Future Improvements
 
-- MFA Authentication
-- GitOps Integration
-- Monitoring Stack
-- Automated Backups
-- Advanced Access Policies
-- Internal Reverse Proxy
+* MFA Authentication
+* GitOps Integration
+* Monitoring Stack
+* Automated Backups
+* Advanced Access Policies
+* Internal Reverse Proxy
