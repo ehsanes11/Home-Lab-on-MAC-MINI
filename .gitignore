@@ -1,3 +1,40 @@
+# .gitignore
+
+```gitignore
+# macOS
 .DS_Store
+
+# backup / temporary files
 *.save
+*.bak
+*.tmp
+*.log
+
+# environment files
 .env
+.env.*
+
+# secrets
+secrets/
+tokens/
+private/
+
+# ssh keys
+*.pem
+id_rsa
+id_ed25519
+
+# docker
+docker-compose.override.yml
+
+# vscode
+.vscode/
+
+# terraform
+*.tfstate
+*.tfstate.*
+
+# python
+__pycache__/
+*.pyc
+```
