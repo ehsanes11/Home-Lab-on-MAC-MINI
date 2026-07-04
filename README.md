@@ -1,117 +1,136 @@
-# Proxmox Installation
+# Home Lab on Mac mini 2014
 
-## Hardware
-
-* Mac mini 2014
-* Intel CPU
-* 16GB RAM
-* 256GB Internal SSD
-* 2TB External SSD (planned for backups and storage)
-
-<img width="4032" height="3024" alt="Hardware" src="https://github.com/user-attachments/assets/3b5c6135-a265-4764-9b2f-dcc7901957f2" />
+A personal self-hosted infrastructure project built on Proxmox VE with a focus on virtualization, Docker, security, automation, and infrastructure best practices.
 
 ---
 
-# Network Configuration
+# Hardware
 
-* Static IP configured during installation
-* Gateway configured
-* DNS configured using Cloudflare DNS
-
-<img width="2360" height="1640" alt="Network Configuration" src="https://github.com/user-attachments/assets/4042a47a-e089-4979-b657-93ed63ae00f1" />
-
----
-
-# Filesystem
-
-* ext4 selected for lower RAM usage and simplicity
+* **Host:** Mac mini (Late 2014)
+* **CPU:** Intel
+* **Memory:** 16 GB RAM
+* **Internal Storage:** 256 GB Apple SSD
+* **External Storage:** Samsung 850 PRO 2 TB (USB-SATA)
 
 ---
 
-# Infrastructure Goals
-
-* Secure remote access
-* Cloudflare Tunnel
-* Zero Trust authentication
-* Docker isolation
-* Future VPN integration
-* Future GitOps workflow
-* Self-hosted infrastructure
-
----
-
-# Installation Screenshots
-
-<img width="2360" height="1640" alt="Installation Summary" src="https://github.com/user-attachments/assets/2981956e-7f1a-4f72-95f3-82787b88b3ec" />
-
----
-
-# Minimal Installation Approach
-
-Optional packages and preconfigured services were intentionally skipped during installation to keep the system lightweight, minimal, and easier to maintain.
-
----
-
-# Proxmox Network Configuration
-
-Configured:
-
-* Static IP address
-* Gateway
-* DNS server
-* Local infrastructure hostname
-
----
-
-# Secure Remote Access
-
-Remote access is secured using:
-
-* Cloudflare Tunnel
-* Cloudflare Access
-* Zero Trust authentication
-* HTTPS encryption
-* Email-based access control
-
-No router port forwarding is used.
-
----
-
-# Current Architecture
+# Current Infrastructure
 
 ```text
-Internet
-↓
-Cloudflare Access
-↓
-Cloudflare Tunnel
-↓
-cloudflared LXC
-↓
-Proxmox
+Mac mini 2014
+│
+├── Proxmox VE
+│
+├── Internal SSD (256GB)
+│   ├── Proxmox OS
+│   └── Boot
+│
+├── External SSD (Samsung 850 PRO 2TB)
+│   └── LVM-Thin Storage
+│
+└── Debian 12 Virtual Machine
+    ├── Docker
+    └── Portainer
 ```
 
 ---
 
-# Proxmox Access
+# Storage Configuration
 
-Proxmox is securely accessible through a protected domain endpoint behind Cloudflare Access.
+The external Samsung 850 PRO SSD has been configured as a dedicated **LVM-Thin** storage pool inside Proxmox.
+
+### Configuration
+
+* **Volume Group:** `vg-ssd`
+* **Thin Pool:** `data`
+* **Storage ID:** `ssd-storage`
+
+### Features
+
+* Thin Provisioning
+* Virtual Machine Disks
+* Container Disks
+* Snapshot Support
+* Clone Support
+
+The Debian virtual machine has been successfully migrated from the default `local-lvm` storage to the new LVM-Thin storage.
 
 ---
 
-# Security Notes
+# Virtualization
 
-* No direct public exposure of Proxmox
-* No public SSH exposure
-* Home public IP address remains hidden
-* Tunnel token is kept private
-* Self-signed Proxmox certificate handled through Cloudflare Tunnel
-* Sensitive infrastructure details are intentionally redacted from this repository
+## Hypervisor
+
+* Proxmox VE
+
+## Virtual Machines
+
+### Debian 12
+
+* Docker installed
+* Portainer installed
+* Running from LVM-Thin storage
 
 ---
 
-# First Successful Boot
+# Project Goals
 
-Proxmox VE successfully installed and configured.
+This homelab is being built to learn and deploy production-style infrastructure using open-source technologies.
 
-This marks the beginning of the homelab infrastructure project.
+Planned services include:
+
+* Nginx Proxy Manager
+* Cloudflare Tunnel
+* Homepage Dashboard
+* Vaultwarden
+* Uptime Kuma
+* Monitoring
+* Backup Automation
+* Infrastructure Documentation
+
+---
+
+# Current Progress
+
+* ✅ Proxmox VE installed
+* ✅ Debian 12 virtual machine
+* ✅ Docker
+* ✅ Portainer
+* ✅ External 2TB SSD configured
+* ✅ LVM-Thin storage created
+* ✅ Debian VM migrated to LVM-Thin
+
+---
+
+# Repository Structure
+
+```text
+Home-Lab/
+├── backups/
+├── compose/
+├── diagrams/
+├── docs/
+├── images/
+├── scripts/
+└── README.md
+```
+
+---
+
+# Learning Objectives
+
+* Linux Administration
+* Proxmox Virtualization
+* Docker & Containers
+* Infrastructure as Code
+* Networking
+* Reverse Proxy
+* Cloud Security
+* Self-hosting
+* Backup & Disaster Recovery
+
+---
+
+# License
+
+This repository documents my personal homelab journey and is intended for learning, documentation, and experimentation.
