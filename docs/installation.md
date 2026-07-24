@@ -1,32 +1,60 @@
 # Proxmox Initial Setup
 
+This document records the initial Proxmox setup for the Mac mini home lab and reconciles the original install notes with the current lab state.
+
 ## System Information
 
-- Device: Mac mini 2014
-- RAM: 16GB
-- Internal Storage: 256GB SSD
-- External Storage: 2TB SSD (planned for backups and storage)
-<img width="1680" height="1050" alt="Screenshot 2026-05-24 at 11 01 20 PM" src="https://github.com/user-attachments/assets/12962e4a-f839-43fc-b8e8-89df1afdb45c" />
+| Item | Value |
+| --- | --- |
+| Device | Mac mini 2014 |
+| RAM | 16 GB |
+| Internal storage | 256 GB Apple SSD |
+| External storage | Samsung 850 PRO 2 TB SSD |
+| Hypervisor | Proxmox VE |
+| Timezone | `America/New_York` |
 
----
+## Current Result
 
-# Initial Configuration
+The initial setup is complete. The host now runs Proxmox VE, uses the external SSD as an LVM-thin storage pool, and hosts both a Debian Docker VM and a dedicated Cloudflare Tunnel LXC.
 
-## Update System
+```text
+Proxmox VE
+|-- Internal SSD: Proxmox OS and boot storage
+|-- External SSD: LVM-thin pool named ssd-storage
+|-- Debian 12 VM: Docker and Portainer
+`-- Debian LXC: cloudflared tunnel
+```
+
+## Installation Checklist
+
+- Proxmox VE installed on the Mac mini.
+- Wired Ethernet used for host networking.
+- Proxmox web UI verified after first boot.
+- Enterprise repositories disabled because this lab does not use a paid subscription.
+- Ceph repositories disabled because this is a single-node lab.
+- No-subscription repository enabled.
+- System upgraded successfully.
+- Timezone set to `America/New_York`.
+- Proxmox firewall enabled at the datacenter level.
+- Debian 12 VM created.
+- Docker and Portainer installed.
+- Samsung 850 PRO 2 TB SSD configured as LVM-thin storage.
+- Debian VM migrated to the external LVM-thin storage.
+- Dedicated Debian LXC created for Cloudflare Tunnel.
+
+## Initial System Update
+
+Run updates after the first boot:
 
 ```bash
-apt update && apt full-upgrade -y
+apt update
+apt full-upgrade -y
 reboot
 ```
 
----
+## Repository Configuration
 
-# Repository Configuration
-
-## Why Enterprise Repositories Were Disabled
-
-Proxmox enables enterprise repositories by default.
-Since this homelab does not use a paid Proxmox subscription, the enterprise repositories generated authentication errors during updates.
+Proxmox enables enterprise repositories by default. Without a subscription, those repositories can cause authentication errors during updates.
 
 Example error:
 
@@ -35,98 +63,101 @@ Example error:
 The repository is not signed.
 ```
 
----
+### Disabled Repositories
 
-## Enterprise Repository
+- `/etc/apt/sources.list.d/pve-enterprise.sources`
+- `/etc/apt/sources.list.d/ceph.sources`
 
-Disabled:
+Ceph was disabled because the lab is currently a single-node Proxmox environment and does not need distributed storage.
 
-```text
-/etc/apt/sources.list.d/pve-enterprise.sources
-```
-
----
-
-## Ceph Repository
-
-Disabled because:
-
-- This is a single-node homelab
-- Distributed storage is not required
-- Ceph is unnecessary for this environment
-
-Disabled file:
-
-```text
-/etc/apt/sources.list.d/ceph.sources
-```
-
----
-
-## No-Subscription Repository
-
-Configured repository:
+### Enabled Repository
 
 ```text
 deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
 ```
 
----
+After changing repositories:
 
-## Result
+```bash
+apt update
+apt full-upgrade -y
+```
 
-System updates now work normally without authentication errors.
-
----
-
-# Timezone Configuration
+## Timezone
 
 ```bash
 timedatectl set-timezone America/New_York
 ```
 
----
+## Firewall
 
-# Firewall
-
-Enabled Proxmox Firewall from:
+The Proxmox firewall is enabled from:
 
 ```text
-Datacenter → Firewall → Enable
+Datacenter -> Firewall -> Enable
 ```
 
----
-<img width="1680" height="1050" alt="Screenshot 2026-05-24 at 11 29 12 PM" src="https://github.com/user-attachments/assets/34a67503-e50d-40f6-8195-3bfc0f68009b" />
+## Storage Layout
 
-# Storage Layout
+### Internal SSD
 
-## Internal SSD
-
-Used for:
+The internal Apple SSD is used for:
 
 - Proxmox OS
+- Boot storage
+- Local administrative storage
+
+### External SSD
+
+The Samsung 850 PRO 2 TB SSD has moved from "planned" to "implemented." It is configured as a dedicated Proxmox LVM-thin pool.
+
+| Setting | Value |
+| --- | --- |
+| Volume group | `vg-ssd` |
+| Thin pool | `data` |
+| Storage ID | `ssd-storage` |
+
+Primary uses:
+
 - VM disks
-- Containers
+- Container disks
+- Snapshots
+- Clones
 
----
+## Workload Layout
 
-## External 2TB SSD
+### Debian 12 VM
 
-Planned for:
+The Debian 12 VM is the current Docker host.
 
-- Backups
-- Docker data
-- Media storage
-- ISO images
+Installed services:
 
----
+- Docker
+- Portainer
 
-# Future Plans
+Storage:
 
-- Debian Docker VM
-- Cloudflare Tunnel
-- Reverse Proxy
-- Vaultwarden
-- Uptime Kuma
-- GitOps workflow
-- Kubernetes lab
+- Migrated from default `local-lvm`
+- Now running from `ssd-storage`
+
+### Cloudflare Tunnel LXC
+
+A dedicated Debian LXC now runs `cloudflared` for secure remote access to selected internal services. See [Cloudflare Tunnel setup](cloudflare-tunnel.md).
+
+## Screenshots
+
+Existing setup screenshots are stored under `docs/images/`:
+
+- `proxmox-first-boot.jpg`
+- `proxmox-network-config.jpg`
+- `first dashboard.png`
+- `Dashboard .png`
+- `DEVICES.jpg`
+
+## Next Steps
+
+- Add backup strategy and restore notes.
+- Add Docker Compose files after services are standardized.
+- Document Portainer setup and service deployment workflow.
+- Add monitoring and alerting notes.
+- Document the reverse proxy decision.
