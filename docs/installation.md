@@ -1,60 +1,60 @@
 # Proxmox Initial Setup
 
-This document records the initial Proxmox setup for the Mac mini home lab and reconciles the original install notes with the current lab state.
-
 ## System Information
 
-| Item | Value |
-| --- | --- |
-| Device | Mac mini 2014 |
-| RAM | 16 GB |
-| Internal storage | 256 GB Apple SSD |
-| External storage | Samsung 850 PRO 2 TB SSD |
-| Hypervisor | Proxmox VE |
-| Timezone | `America/New_York` |
+- Device: Mac mini 2014
+- Proxmox node name: `<PROXMOX_NODE_NAME>`
+- Proxmox IP: `192.168.1.60`
+- Proxmox Web UI: `https://192.168.1.60:8006`
+- RAM: 16 GB
+- Internal Storage: 256 GB SSD
+- External Storage: Samsung 850 PRO 2 TB SSD
 
-## Current Result
+---
 
-The initial setup is complete. The host now runs Proxmox VE, uses the external SSD as an LVM-thin storage pool, and hosts both a Debian Docker VM and a dedicated Cloudflare Tunnel LXC.
+# Current Result
+
+Proxmox VE is installed directly on the Mac mini. The node name is documented as `<PROXMOX_NODE_NAME>` and is available on the local network at `192.168.1.60`.
+
+Current workload layout:
 
 ```text
-Proxmox VE
-|-- Internal SSD: Proxmox OS and boot storage
-|-- External SSD: LVM-thin pool named ssd-storage
-|-- Debian 12 VM: Docker and Portainer
-`-- Debian LXC: cloudflared tunnel
+Proxmox VE node: <PROXMOX_NODE_NAME>
+|
+|-- Internal SSD
+|   |-- Proxmox OS
+|   `-- Boot
+|
+|-- External Samsung 850 PRO 2 TB SSD
+|   `-- LVM-Thin storage
+|
+`-- Debian VM
+    |-- Docker
+    |-- Docker Compose
+    |-- Portainer
+    |-- Homepage
+    |-- Jellyfin
+    `-- Nginx Proxy Manager
 ```
 
-## Installation Checklist
+---
 
-- Proxmox VE installed on the Mac mini.
-- Wired Ethernet used for host networking.
-- Proxmox web UI verified after first boot.
-- Enterprise repositories disabled because this lab does not use a paid subscription.
-- Ceph repositories disabled because this is a single-node lab.
-- No-subscription repository enabled.
-- System upgraded successfully.
-- Timezone set to `America/New_York`.
-- Proxmox firewall enabled at the datacenter level.
-- Debian 12 VM created.
-- Docker and Portainer installed.
-- Samsung 850 PRO 2 TB SSD configured as LVM-thin storage.
-- Debian VM migrated to the external LVM-thin storage.
-- Dedicated Debian LXC created for Cloudflare Tunnel.
+# Initial Configuration
 
-## Initial System Update
-
-Run updates after the first boot:
+## Update System
 
 ```bash
-apt update
-apt full-upgrade -y
+apt update && apt full-upgrade -y
 reboot
 ```
 
-## Repository Configuration
+---
 
-Proxmox enables enterprise repositories by default. Without a subscription, those repositories can cause authentication errors during updates.
+# Repository Configuration
+
+## Why Enterprise Repositories Were Disabled
+
+Proxmox enables enterprise repositories by default. Since this homelab does not use a paid Proxmox subscription, the enterprise repositories generated authentication errors during updates.
 
 Example error:
 
@@ -63,88 +63,108 @@ Example error:
 The repository is not signed.
 ```
 
-### Disabled Repositories
+## Enterprise Repository
 
-- `/etc/apt/sources.list.d/pve-enterprise.sources`
-- `/etc/apt/sources.list.d/ceph.sources`
+Disabled:
 
-Ceph was disabled because the lab is currently a single-node Proxmox environment and does not need distributed storage.
+```text
+/etc/apt/sources.list.d/pve-enterprise.sources
+```
 
-### Enabled Repository
+## Ceph Repository
+
+Disabled because:
+
+- This is a single-node homelab
+- Distributed storage is not required
+- Ceph is unnecessary for this environment
+
+Disabled file:
+
+```text
+/etc/apt/sources.list.d/ceph.sources
+```
+
+## No-Subscription Repository
+
+Configured repository:
 
 ```text
 deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
 ```
 
-After changing repositories:
+## Result
 
-```bash
-apt update
-apt full-upgrade -y
-```
+System updates now work normally without authentication errors.
 
-## Timezone
+---
+
+# Timezone Configuration
 
 ```bash
 timedatectl set-timezone America/New_York
 ```
 
-## Firewall
+---
 
-The Proxmox firewall is enabled from:
+# Firewall
+
+Enabled Proxmox Firewall from:
 
 ```text
 Datacenter -> Firewall -> Enable
 ```
 
-## Storage Layout
+---
 
-### Internal SSD
+# Storage Layout
 
-The internal Apple SSD is used for:
+## Internal SSD
+
+Used for:
 
 - Proxmox OS
-- Boot storage
+- Boot
 - Local administrative storage
 
-### External SSD
+## External 2 TB SSD
 
-The Samsung 850 PRO 2 TB SSD has moved from "planned" to "implemented." It is configured as a dedicated Proxmox LVM-thin pool.
+The external Samsung 850 PRO 2 TB SSD is configured as dedicated LVM-Thin storage for VM and container disks.
 
-| Setting | Value |
-| --- | --- |
-| Volume group | `vg-ssd` |
-| Thin pool | `data` |
-| Storage ID | `ssd-storage` |
+Configuration:
 
-Primary uses:
+- Volume Group: `vg-ssd`
+- Thin Pool: `data`
+- Storage ID: `ssd-storage`
+
+Used for:
 
 - VM disks
 - Container disks
 - Snapshots
 - Clones
 
-## Workload Layout
+---
 
-### Debian 12 VM
+# Debian VM
 
-The Debian 12 VM is the current Docker host.
+The Debian VM is the main Docker host.
 
-Installed services:
+Installed:
 
 - Docker
+- Docker Compose
 - Portainer
 
-Storage:
+Current Docker services include:
 
-- Migrated from default `local-lvm`
-- Now running from `ssd-storage`
+- Homepage
+- Jellyfin
+- Nginx Proxy Manager
 
-### Cloudflare Tunnel LXC
+---
 
-A dedicated Debian LXC now runs `cloudflared` for secure remote access to selected internal services. See [Cloudflare Tunnel setup](cloudflare-tunnel.md).
-
-## Screenshots
+# Screenshots
 
 Existing setup screenshots are stored under `docs/images/`:
 
@@ -154,10 +174,13 @@ Existing setup screenshots are stored under `docs/images/`:
 - `Dashboard .png`
 - `DEVICES.jpg`
 
-## Next Steps
+---
 
-- Add backup strategy and restore notes.
-- Add Docker Compose files after services are standardized.
-- Document Portainer setup and service deployment workflow.
-- Add monitoring and alerting notes.
-- Document the reverse proxy decision.
+# Future Plans
+
+- Complete Homepage Proxmox widget troubleshooting
+- Add service-specific Docker Compose documentation
+- Add backup automation
+- Add monitoring
+- Add Vaultwarden
+- Add GitOps workflow
